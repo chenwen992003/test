@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>手机相机调用示例</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 100%;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 20px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        #video {
+            width: 100%;
+            height: auto;
+            display: block;
+            background: #000;
+        }
+
+        #canvas {
+            display: none;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            min-width: 120px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #56ab2f, #a8e6cf);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+        }
+
+        .status {
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+        }
+
+        .status.success {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+        }
+
+        .status.error {
+            background: rgba(244, 67, 54, 0.3);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+        }
+
+        .status.warning {
+            background: rgba(255, 152, 0, 0.3);
+            border: 1px solid rgba(255, 152, 0, 0.5);
+        }
+
+        .photo-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .photo-item {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-item .delete {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(255, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .btn {
+                padding: 10px 20px;
+                font-size: 14px;
+                min-width: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📷 手机相机调用</h1>
+        
+        <div class="video-container">
+            <video id="video" autoplay playsinline></video>
+        </div>
+        
+        <canvas id="canvas"></canvas>
+        
+        <div class="controls">
+            <button id="startCamera" class="btn btn-success">开启相机</button>
+            <button id="takePhoto" class="btn btn-primary" disabled>拍照</button>
+            <button id="switchCamera" class="btn btn-secondary" disabled>切换摄像头</button>
+            <button id="stopCamera" class="btn btn-danger" disabled>关闭相机</button>
+        </div>
+        
+        <div id="status" class="status">
+            点击"开启相机"开始使用
+        </div>
+        
+        <div class="photo-gallery" id="photoGallery"></div>
+    </div>
+
+    <script>
+        class CameraApp {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.status = document.getElementById('status');
+                this.photoGallery = document.getElementById('photoGallery');
+                
+                this.stream = null;
+                this.currentFacingMode = 'environment'; // 默认后置摄像头
+                this.photos = [];
+                
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                document.getElementById('startCamera').addEventListener('click', () => this.startCamera());
+                document.getElementById('takePhoto').addEventListener('click', () => this.takePhoto());
+                document.getElementById('switchCamera').addEventListener('click', () => this.switchCamera());
+                document.getElementById('stopCamera').addEventListener('click', () => this.stopCamera());
+            }
+
+            updateStatus(message, type = 'info') {
+                this.status.textContent = message;
+                this.status.className = `status ${type}`;
+            }
+
+            async startCamera() {
+                try {
+                    this.updateStatus('正在请求相机权限...', 'warning');
+                    
+                    const constraints = {
+                        video: {
+                            facingMode: this.currentFacingMode,
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        },
+                        audio: false
+                    };
+
+                    this.stream = await navigator.mediaDevices.getUserMedia(constraints);
+                    this.video.srcObject = this.stream;
+                    
+                    this.updateStatus('相机已开启', 'success');
+                    this.updateButtonStates(true);
+                    
+                } catch (error) {
+                    console.error('相机启动失败:', error);
+                    this.handleCameraError(error);
+                }
+            }
+
+            handleCameraError(error) {
+                let message = '相机启动失败';
+                
+                switch (error.name) {
+                    case 'NotAllowedError':
+                        message = '用户拒绝了相机权限，请在浏览器设置中允许访问相机';
+                        break;
+                    case 'NotFoundError':
+                        message = '未找到相机设备';
+                        break;
+                    case 'NotReadableError':
+                        message = '相机被其他应用占用';
+                        break;
+                    case 'OverconstrainedError':
+                        message = '相机不支持指定的分辨率';
+                        break;
+                    default:
+                        message = `相机错误: ${error.message}`;
+                }
+                
+                this.updateStatus(message, 'error');
+            }
+
+            takePhoto() {
+                if (!this.stream) return;
+                
+                try {
+                    // 设置canvas尺寸与视频一致
+                    this.canvas.width = this.video.videoWidth;
+                    this.canvas.height = this.video.videoHeight;
+                    
+                    // 绘制当前视频帧到canvas
+                    this.ctx.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
+                    
+                    // 转换为图片URL
+                    const imageUrl = this.canvas.toDataURL('image/jpeg', 0.9);
+                    
+                    // 保存照片
+                    this.photos.push({
+                        id: Date.now(),
+                        url: imageUrl,
+                        timestamp: new Date().toLocaleString()
+                    });
+                    
+                    // 显示照片
+                    this.displayPhoto(imageUrl);
+                    
+                    this.updateStatus('拍照成功！', 'success');
+                    
+                } catch (error) {
+                    console.error('拍照失败:', error);
+                    this.updateStatus('拍照失败', 'error');
+                }
+            }
+
+            displayPhoto(imageUrl) {
+                const photoItem = document.createElement('div');
+                photoItem.className = 'photo-item';
+                photoItem.innerHTML = `
+                    <img src="${imageUrl}" alt="照片">
+                    <button class="delete" onclick="cameraApp.deletePhoto(${this.photos[this.photos.length - 1].id})">×</button>
+                `;
+                
+                this.photoGallery.appendChild(photoItem);
+            }
+
+            deletePhoto(photoId) {
+                this.photos = this.photos.filter(photo => photo.id !== photoId);
+                this.updatePhotoGallery();
+                this.updateStatus('照片已删除', 'info');
+            }
+
+            updatePhotoGallery() {
+                this.photoGallery.innerHTML = '';
+                this.photos.forEach(photo => {
+                    this.displayPhoto(photo.url);
+                });
+            }
+
+            async switchCamera() {
+                if (!this.stream) return;
+                
+                try {
+                    // 停止当前流
+                    this.stopCameraStreams();
+                    
+                    // 切换摄像头
+                    this.currentFacingMode = this.currentFacingMode === 'user' ? 'environment' : 'user';
+                    
+                    // 重新启动相机
+                    await this.startCamera();
+                    
+                    const cameraName = this.currentFacingMode === 'user' ? '前置' : '后置';
+                    this.updateStatus(`已切换到${cameraName}摄像头`, 'success');
+                    
+                } catch (error) {
+                    console.error('切换摄像头失败:', error);
+                    this.updateStatus('切换摄像头失败', 'error');
+                }
+            }
+
+            stopCameraStreams() {
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+                
+                if (this.video.srcObject) {
+                    this.video.srcObject = null;
+                }
+            }
+
+            stopCamera() {
+                this.stopCameraStreams();
+                this.updateStatus('相机已关闭', 'info');
+                this.updateButtonStates(false);
+            }
+
+            updateButtonStates(isCameraActive) {
+                document.getElementById('startCamera').disabled = isCameraActive;
+                document.getElementById('takePhoto').disabled = !isCameraActive;
+                document.getElementById('switchCamera').disabled = !isCameraActive;
+                document.getElementById('stopCamera').disabled = !isCameraActive;
+            }
+        }
+
+        // 初始化应用
+        const cameraApp = new CameraApp();
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 检查浏览器支持
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                cameraApp.updateStatus('您的浏览器不支持相机功能，请使用现代浏览器', 'error');
+                document.querySelectorAll('.btn').forEach(btn => btn.disabled = true);
+            }
+        });
+
+        // 页面卸载时清理资源
+        window.addEventListener('beforeunload', () => {
+            if (cameraApp) {
+                cameraApp.stopCameraStreams();
+            }
+        });
+    </script>
+</body>
+</html>
